@@ -3,44 +3,65 @@ import DataStreamer, { ServerRespond } from './DataStreamer';
 import Graph from './Graph';
 import './App.css';
 
-/**
- * State declaration for <App />
+/** Ultimately, I have adjusted the getDataFromServer function and some subsequent functions
+ * to ensure that the code consistently requests data from the server every 100 ms while the app is running 
  */
+
+//here i specify that the 'showGraph' property is a boolean
 interface IState {
   data: ServerRespond[],
+  showGraph: boolean, 
 }
 
-/**
- * The parent element of the react app.
- * It renders title, button and Graph react element.
- */
+/**bc this component extends the IState interface, 
+it must include the methods of the IState interface
+so in the constructor, i make sure to declare the states
+of data and showGraph */
 class App extends Component<{}, IState> {
   constructor(props: {}) {
     super(props);
 
     this.state = {
-      // data saves the server responds.
-      // We use this state to parse data down to the child element (Graph) as element property
       data: [],
+      showGraph: false,
     };
   }
 
-  /**
-   * Render Graph react component with state.data parse as property data
+
+  /** Adjiust renderGraph to include the condition of if showGraph
+   * returns true (or the start streaming button being pressed), to then render the image of the graph.
    */
   renderGraph() {
-    return (<Graph data={this.state.data}/>)
+    if (this.state.showGraph){
+      return (<Graph data={this.state.data}/>)
+    } 
   }
 
-  /**
-   * Get new data from server and update the state with the new data
+  /** Adjust the getDataFromServert to get data from the server continuously
+   * rather than only at the time the startStreaming button is pressed
    */
+
   getDataFromServer() {
-    DataStreamer.getData((serverResponds: ServerRespond[]) => {
-      // Update the state by creating a new array of data that consists of
-      // Previous data in the state and the new data from server
-      this.setState({ data: [...this.state.data, ...serverResponds] });
-    });
+    let k = 0; 
+    const interval = setInterval(() => {
+      /**
+       * Create a counter interval k that increments 
+       * under the following conditions 
+       */
+      DataStreamer.getData((serverResponds: ServerRespond[]) => {
+        // Update the state by creating a new array of data that consists of
+        // Previous data in the state and the new data from server
+        this.setState({ 
+          data: serverResponds, 
+          showGraph: true,
+        });
+      });
+      k++; 
+      //Once the counter increments for the 1000th time call the clearInterval method 
+      if (k > 1000){
+        clearInterval(interval); 
+      }
+    }, 100);  
   }
 
   /**
@@ -54,11 +75,6 @@ class App extends Component<{}, IState> {
         </header>
         <div className="App-content">
           <button className="btn btn-primary Stream-button"
-            // when button is click, our react app tries to request
-            // new data from the server.
-            // As part of your task, update the getDataFromServer() function
-            // to keep requesting the data every 100ms until the app is closed
-            // or the server does not return anymore data.
             onClick={() => {this.getDataFromServer()}}>
             Start Streaming Data
           </button>
